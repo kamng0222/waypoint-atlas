@@ -7,7 +7,7 @@ Created: 2 October 2026, Hong Kong time. This is the implemented first programme
 The user requested Python development in VS Code, under:
 
 ```text
-<local project directory>
+K:\Research\ResearchProjects\_Navigraph dataset and visualisation
 ```
 
 The first programme should provide an Earth-like HTML visualiser with 3D and flat modes, camera movement, and all waypoint connections. The user explicitly requested detailed Markdown that another AI can follow.
@@ -325,3 +325,14 @@ For Python changes, run the 17 regression tests. For front-end changes, run `nod
 - [CesiumJS source](https://github.com/CesiumGS/cesium): upstream implementation and licence context.
 
 The input database is the authority for this project's recorded graph. External documentation informs schema interpretation and rendering APIs; it does not replace local source evidence.
+
+
+## 13. Authorised public Navigraph deployment (2 October 2026)
+
+The owner changed the earlier synthetic-only publication choice and explicitly stated redistribution permission. The live GitHub Pages URL now loads the supplied AIRAC 2610 graph by default. See PUBLICATION.md for the exact scope and authorisation record. The initial synthetic release described earlier is historical.
+
+The public graph is stored as `public_data/network.json.gz`, with 257,277 point rows and 91,099 segment rows. It is a sanitised format_version 1 export, not the source SQLite file. `manifest.signature` and database compiler/bookkeeping metadata are removed. A source/cycle notice distinguishes recorded connections from traffic observations.
+
+`tools/build_authorized_public.py` requires `--network` and `--redistribution-approved`, reuses the synthetic static asset builder, emits deterministic gzip, and configures `window.ATLAS_DATA_URL`. The static data adapter downloads that file and uses browser DecompressionStream to decode gzip before the existing validation/indexing code. Search, directions, filters, 2D/3D geometry and selection use the same graph logic as local import. Reset returns to the public graph. A subsequently selected local export still stays in browser memory.
+
+Keep the default synthetic builder separate. Do not silently publish a different AIRAC or additional database tables. The existing SQLite/DAT files and flight CSVs remain local. The public navigation export is user-authorised; this does not establish broader rights or project endorsement.

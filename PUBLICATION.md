@@ -1,48 +1,36 @@
 # Public GitHub publication
 
-The user authorised publication of the software and a synthetic demonstration on 2 October 2026. They explicitly selected keeping the real Navigraph data local.
-
 Repository: https://github.com/kamng0222/waypoint-atlas
+Public viewer: https://kamng0222.github.io/waypoint-atlas/
 
-Intended GitHub Pages URL: https://kamng0222.github.io/waypoint-atlas/
+## Publication scope and authorisation
 
-## Public content
+On 2 October 2026 the user initially selected a synthetic demonstration with real data kept local. They subsequently explicitly changed that choice: **“Publish the real dataset—I have redistribution permission.”** The current public deployment therefore contains the Navigraph AIRAC 2610 waypoint/airway graph. This records the user's statement; no permission document was supplied or independently verified.
 
-The public app is named **Waypoint Atlas**. Its demonstration nodes and links are generated deterministically by `tools/build_static.py`. All labels start with DEM; every demo record is invented. The data banner clearly says SYNTHETIC DEMO. The demonstration does not represent actual waypoints, airways, traffic, or a Navigraph AIRAC cycle.
+Published graph: 257,277 waypoints; 91,099 airway segments; 47,317 linked waypoints; 9,859 airway names. These are recorded en-route connections, not measured traffic flows. This viewer is for research and is not for operational navigation. It is an independent project, with no claim of endorsement by Navigraph.
 
-The public code includes the Python adapter and viewer. It includes no Navigraph SQLite/DAT inputs, exported private graph, flight CSVs, logs, or screenshots of the real data. The bootstrap archive is generated using an explicit file allowlist.
+The original SQLite database, DAT input, flight CSVs, logs and workstation paths remain outside the published content. Only the reviewed graph export is public. Public navigation data retains its source rights; this project does not grant a new licence to third parties.
 
 ## Static architecture
 
-GitHub Pages serves files, and does not execute the Python HTTP server. `web/data-source.js` supplies the viewer's search/detail API in browser memory when `window.ATLAS_STATIC` is set. The local Python app continues to use its HTTP API.
+GitHub Pages serves static HTML/JavaScript and cannot run Python. `web/data-source.js` indexes the downloaded graph in browser memory for search and incident connections. The deployed HTML sets `ATLAS_STATIC` and `ATLAS_DATA_URL='./network.json.gz'`. Modern browsers stream the gzip response through `DecompressionStream('gzip')`; the compressed graph is approximately 6.8 MB and expands to approximately 24.6 MB. All asset URLs remain relative for repository subpaths. There is no Cesium cloud token, external imagery request or analytics.
 
-All script, CSS, worker, and imagery URLs are relative to the site, so repository subpaths are supported. The GitHub Actions build obtains the pinned, integrity-verified Cesium runtime and then generates the synthetic site. It never reads a private navigation input.
+`tools/build_static.py` still builds a synthetic-only demonstration. Real-data publication is a separate explicit command:
 
-The public page's **Open local network.json** control reads a selected file with the browser File API. It rebuilds the viewer's graph in the current tab. It does not POST the file, send its contents in a URL, call a remote data API, or persist it to browser storage. **Return to synthetic demo** discards the imported in-memory graph. Refreshing also returns to the demo.
-
-For local data, run the Python app to create `cache/network.json`, then select that file in the public viewer. Viewing data locally does not establish any redistribution rights. Consult your data licence separately.
-
-## Deployment and source bootstrap
-
-The initial upload contains `source.zip` plus a public README and this document. A reviewed GitHub Actions workflow extracts the allowlisted source archive on the first build, expands it into readable repository files, commits those files, installs Cesium, runs the Python tests, builds the synthetic site, and deploys Pages.
-
-Later builds use the readable repository source directly. They do not reapply the bootstrap archive when `app.py` is already present. The archive remains a source snapshot; future changes should be made to the expanded source, with normal Git commits.
-
-The workflow needs a repository-scoped temporary GitHub Actions token for the initial source commit, and standard Pages deployment permissions. It uses no personal access token and no external secrets.
-
-## Local build
-
-```powershell
+```sh
 python tools/setup_assets.py
-python tools/build_static.py --output public_site
-python -m http.server 8766 --bind 127.0.0.1 --directory public_site
+python tools/build_authorized_public.py --network public_data/network.json.gz --redistribution-approved --output public_navigraph_site
+python -m http.server 8766 --directory public_navigraph_site
 ```
 
-Open http://127.0.0.1:8766. Do not put private input data inside `public_site`.
+The authorised builder removes `manifest.signature`, permits only source/cycle/validity metadata, generates a deterministic compressed export, and labels the source and AIRAC cycle. It requires the approval flag, never reads the SQLite input, and keeps the synthetic example available as `demo.json`.
 
-## Relevant source terms
+## Browser-only local import
 
-- [Navigraph developer terms](https://developers.navigraph.com/docs/developer-terms-of-service), including sections 4.2, 5.4, 6, and 7, describe use, charts, branding, and access restrictions. The published demo contains no Navigraph dataset and does not claim affiliation.
-- [GitHub Pages custom workflows](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages) describes the static build/deploy arrangement.
+**Open local network.json** continues to read a selected export in this tab without uploading it. **Return to published Navigraph network** discards the import and reloads the public graph. Refresh also restores the public graph. Publicly served `network.json.gz` is already public; a subsequently selected local file is not sent to a server.
 
-This document records the chosen publication scope; it does not claim a separate licence to redistribute navigation data.
+## Deployment and handover
+
+GitHub Actions runs fixture tests, checks JavaScript syntax, installs integrity-verified Cesium assets, builds the authorised site, verifies the graph counts and metadata, and deploys Pages. A one-time integrity-checked `navigraph-publication.zip` expands reviewed code/documentation and the compressed graph into readable repository paths. Later builds use those paths directly. The old `source.zip` and `package-manifest.json` are historical snapshots of the earlier synthetic release, not the current build sources.
+
+Future AI work should read DESIGN_AND_HANDOVER.md and this file. Do not replace the export with another cycle or publish additional inputs without explicit authorisation. The approval here covers this supplied AIRAC 2610 waypoint/airway graph, not all future Navigraph products or cycles.

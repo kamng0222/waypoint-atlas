@@ -1,0 +1,9 @@
+{
+  "airac": "2610",
+  "data_source": "NAVIGRAPH",
+  "waypoints": 257277,
+  "segments": 91099,
+  "owner_authorisation": "Publish the real dataset—I have redistribution permission",
+  "authorisation_date": "2026-10-02",
+  "sha256": "dfa0f50c00e4e9887217c7677c8fa4512cbbffdc291ef617309ac0286e197475"
+}

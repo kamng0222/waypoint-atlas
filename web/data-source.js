@@ -39,9 +39,13 @@ if (window.ATLAS_STATIC) {
       network = document; points = nextPoints; incident = nextIncident; airways = nextAirways;
     }
     async function loadDemo() {
-      const response = await fetch("./demo.json");
-      if (!response.ok) throw new Error("Could not load the synthetic demo.");
-      prepare(await response.json());
+      const url = window.ATLAS_DATA_URL || "./demo.json";
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Could not load the published network.");
+      const data = url.endsWith(".gz")
+        ? await new Response(response.body.pipeThrough(new DecompressionStream("gzip"))).json()
+        : await response.json();
+      prepare(data);
     }
     async function api(path) {
       if (!network) await loadDemo();
@@ -69,7 +73,8 @@ if (window.ATLAS_STATIC) {
     }
     function enableImport() {
       const controls = document.getElementById("staticControls"); controls.hidden = false;
-      document.getElementById("searchInput").placeholder = "Try DEM00001 or DEM-EAS-J…";
+      document.getElementById("searchInput").placeholder = window.ATLAS_DATA_URL ? "Try BEKOL or A1…" : "Try DEM00001 or DEM-EAS-J…";
+      if (window.ATLAS_DATA_URL) document.getElementById("resetDemo").textContent = "Return to published Navigraph network";
       const input = document.getElementById("datasetFile"), reset = document.getElementById("resetDemo");
       const showError = (error) => { const toast = document.getElementById("toast"); toast.textContent = error.message; toast.hidden = false; };
       input.addEventListener("change", async () => {
