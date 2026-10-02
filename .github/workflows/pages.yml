@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Apply reviewed authorised publication once
-        if: ${{ hashFiles('tools/build_authorized_public.py') == '' }}
+        if: ${{ hashFiles('public_data/network.json.gz') == '' }}
         run: |
           python - <<'PY'
           import hashlib, zipfile
@@ -38,10 +38,14 @@ jobs:
                   destination = Path(name)
                   destination.parent.mkdir(parents=True, exist_ok=True)
                   destination.write_bytes(bundle.read(name))
+          ignore = Path('.gitignore')
+          text = ignore.read_text()
+          if '!public_data/network.json.gz' not in text:
+              ignore.write_text(text + '\n!public_data/network.json.gz\npublic_navigraph_site/\n')
           PY
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add web/index.html web/data-source.js tools/build_authorized_public.py PUBLICATION.md DESIGN_AND_HANDOVER.md README.md public_data
+          git add .gitignore web/index.html web/data-source.js tools/build_authorized_public.py PUBLICATION.md DESIGN_AND_HANDOVER.md README.md public_data
           if ! git diff --cached --quiet; then
             git commit -m 'Publish owner-authorised Navigraph AIRAC 2610 graph and viewer'
             git push origin HEAD:main
