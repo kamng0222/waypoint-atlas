@@ -1,0 +1,26 @@
+{
+  "archive": "source.zip",
+  "sha256": "6f23f7623e62926b0026ec6644d53b86011abbf87caddead392c2e083608c016",
+  "included_files": [
+    "app.py",
+    "navdata.py",
+    "requirements.txt",
+    ".gitignore",
+    "DESIGN_AND_HANDOVER.md",
+    "PUBLICATION.md",
+    ".vscode/launch.json",
+    ".vscode/tasks.json",
+    "web/index.html",
+    "web/style.css",
+    "web/app.js",
+    "web/data-source.js",
+    "tools/setup_assets.py",
+    "tools/build_static.py",
+    "tools/browser_smoke.cjs",
+    "tools/browser_static_smoke.cjs",
+    "tests/test_navdata.py",
+    "README.md",
+    "LOCAL_README.md"
+  ],
+  "private_data_included": false
+}
