@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: waypoint-atlas-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -22,28 +22,28 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Expand reviewed source on first publication
-        if: ${{ hashFiles('app.py') == '' }}
+      - name: Apply reviewed authorised publication once
+        if: ${{ hashFiles('tools/build_authorized_public.py') == '' }}
         run: |
           python - <<'PY'
           import hashlib, zipfile
           from pathlib import Path
-          archive = Path('source.zip')
-          expected = '6f23f7623e62926b0026ec6644d53b86011abbf87caddead392c2e083608c016'
-          assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Source archive integrity mismatch'
-          target = Path('.source').resolve()
+          archive = Path('navigraph-publication.zip')
+          expected = 'efb885362d02433cf4e62fd315222499e58adb03e2b5b4e613bcd9c6863fdfd2'
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Publication bundle integrity mismatch'
+          allowed = {'web/index.html', 'web/data-source.js', 'tools/build_authorized_public.py', 'PUBLICATION.md', 'DESIGN_AND_HANDOVER.md', 'README.md', 'public_data/network.json.gz', 'public_data/publication.json'}
           with zipfile.ZipFile(archive) as bundle:
-              for member in bundle.infolist():
-                  assert (target / member.filename).resolve().is_relative_to(target), 'Unsafe source path'
-                  assert not member.filename.lower().endswith(('.sqlite', '.dat', '.csv')), 'Private data forbidden'
-              bundle.extractall(target)
+              assert set(bundle.namelist()) == allowed, 'Unexpected publication content'
+              for name in allowed:
+                  destination = Path(name)
+                  destination.parent.mkdir(parents=True, exist_ok=True)
+                  destination.write_bytes(bundle.read(name))
           PY
-          cp -a .source/. .
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .gitignore .vscode app.py navdata.py requirements.txt README.md LOCAL_README.md DESIGN_AND_HANDOVER.md PUBLICATION.md web tools tests
+          git add web/index.html web/data-source.js tools/build_authorized_public.py PUBLICATION.md DESIGN_AND_HANDOVER.md README.md public_data
           if ! git diff --cached --quiet; then
-            git commit -m 'Expand reviewed Python and viewer source; keep licensed data local'
+            git commit -m 'Publish owner-authorised Navigraph AIRAC 2610 graph and viewer'
             git push origin HEAD:main
           fi
       - name: Run graph and HTTP regression tests
@@ -54,19 +54,36 @@ jobs:
           node --check web/data-source.js
       - name: Install verified local globe assets
         run: python tools/setup_assets.py
-      - name: Build only synthetic demonstration
-        run: python tools/build_static.py --output _site
-      - name: Verify public data provenance
+      - name: Verify reviewed public graph
         run: |
           python - <<'PY'
-          import json
+          import gzip, hashlib, json
+          from pathlib import Path
+          source = Path('public_data/network.json.gz')
+          record = json.loads(Path('public_data/publication.json').read_text())
+          assert hashlib.sha256(source.read_bytes()).hexdigest() == record['sha256']
+          data = json.loads(gzip.decompress(source.read_bytes()))
+          assert data['manifest']['metadata']['data_source'] == 'NAVIGRAPH'
+          assert data['manifest']['metadata']['airac_cycle'] == '2610'
+          assert len(data['waypoints']) == 257277 and len(data['segments']) == 91099
+          assert 'signature' not in data['manifest']
+          assert set(data['manifest']['metadata']) <= {'airac_cycle', 'data_source', 'valid_through'}
+          print('Owner-authorised AIRAC 2610 graph integrity and metadata verified')
+          PY
+      - name: Build authorised Navigraph public site
+        run: python tools/build_authorized_public.py --network public_data/network.json.gz --redistribution-approved --output _site
+      - name: Verify deployment content
+        run: |
+          python - <<'PY'
+          import gzip, json
           from pathlib import Path
           root = Path('_site')
-          data = json.loads((root / 'demo.json').read_text())
-          assert data['manifest']['metadata']['data_source'] == 'SYNTHETIC'
-          assert all(point[1].startswith('DEM') for point in data['waypoints'])
-          assert not list(root.rglob('*.sqlite')) and not list(root.rglob('*.csv')) and not (root/'network.json').exists()
-          print('Synthetic public data verified; no private navigation input included.')
+          data = json.loads(gzip.decompress((root / 'network.json.gz').read_bytes()))
+          assert data['manifest']['metadata']['data_source'] == 'NAVIGRAPH'
+          assert 'signature' not in data['manifest']
+          assert not list(root.rglob('*.sqlite')) and not list(root.rglob('*.csv')) and not list(root.rglob('*.dat'))
+          assert 'ATLAS_DATA_URL' in (root / 'index.html').read_text()
+          print('Navigraph graph is the default public dataset; raw inputs excluded')
           PY
       - uses: actions/upload-pages-artifact@v4
         with:
@@ -82,6 +99,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - name: Deploy public synthetic viewer
+      - name: Deploy public Navigraph viewer
         id: deployment
         uses: actions/deploy-pages@v4
