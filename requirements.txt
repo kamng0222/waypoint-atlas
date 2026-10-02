@@ -1,0 +1,2 @@
+# Runtime uses Python 3.10+ standard library only. No pip packages required.
+# CesiumJS browser assets are installed by tools/setup_assets.py.

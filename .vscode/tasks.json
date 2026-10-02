@@ -1,0 +1,8 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "Start Navigraph visualiser", "type": "process", "command": "python", "args": ["app.py", "--open"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []},
+    {"label": "Test Navigraph visualiser", "type": "process", "command": "python", "args": ["-m", "unittest", "discover", "-s", "tests", "-v"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": [], "group": {"kind": "test", "isDefault": true}},
+    {"label": "Rebuild Navigraph cache", "type": "process", "command": "python", "args": ["app.py", "--rebuild", "--open"], "options": {"cwd": "${workspaceFolder}"}, "problemMatcher": []}
+  ]
+}

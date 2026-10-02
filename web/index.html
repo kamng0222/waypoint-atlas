@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Navigraph Atlas · Waypoint network</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Ccircle cx='20' cy='20' r='16' fill='%23081725' stroke='%2351dccb' stroke-width='2'/%3E%3Cpath d='M6 20h28M20 4c-12 10-12 22 0 32 12-10 12-22 0-32' fill='none' stroke='%2351dccb'/%3E%3C/svg%3E">
+  <script>window.CESIUM_BASE_URL = './vendor/cesium/';</script>
+  <link rel="stylesheet" href="./vendor/cesium/Widgets/widgets.css">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./vendor/cesium/Cesium.js"></script>
+  <script defer src="./data-source.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div id="earth" aria-label="Interactive Earth and airway network"></div>
+  <header class="topbar">
+    <div class="brand"><svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16"/><ellipse cx="20" cy="20" rx="7" ry="16"/><path d="M4 20h32M8 10q12 8 24 0M8 30q12-8 24 0"/></svg><div><h1>NAVIGRAPH <span>ATLAS</span></h1><p>THE WORLD'S WAYPOINT NETWORK</p></div></div>
+    <div class="header-actions"><span id="cycleBadge" class="badge">LOCAL NAVDATA</span><div class="segmented" aria-label="Map mode"><button id="mode3d" class="active" aria-pressed="true">3D globe</button><button id="mode2d" aria-pressed="false">Flat map</button></div><button id="fullscreen" class="icon-button" title="Full screen" aria-label="Full screen">⛶</button></div>
+  </header>
+
+  <aside class="panel explorer">
+    <div class="eyebrow">PROGRAMME 01 <span class="live-dot"></span> LOCAL EXPLORER</div>
+    <h2>A connected sky.</h2><p class="intro">Explore the fixes and airways that connect the world.</p>
+    <form id="searchForm" role="search"><label for="searchInput" class="sr-only">Search waypoint or airway</label><div class="searchbox"><span aria-hidden="true">⌕</span><input id="searchInput" placeholder="Find a waypoint or airway…" autocomplete="off" maxlength="50"><button type="submit" aria-label="Search">↵</button></div></form>
+    <div id="searchResults" class="search-results" hidden></div>
+    <div class="stats"><div><strong id="pointCount">—</strong><span>WAYPOINTS</span></div><div><strong id="edgeCount">—</strong><span>AIRWAY LINKS</span></div></div>
+    <div class="divider"></div>
+    <div class="section-title"><h3>Network layers</h3><button id="resetLayers" class="text-button">Reset</button></div>
+    <label class="layer-row"><span><i class="swatch jet"></i>High airways <small>J</small></span><input type="checkbox" data-layer="J" checked><span class="switch"></span></label>
+    <label class="layer-row"><span><i class="swatch victor"></i>Low airways <small>V</small></span><input type="checkbox" data-layer="V" checked><span class="switch"></span></label>
+    <label class="layer-row"><span><i class="swatch both"></i>High &amp; low <small>B</small></span><input type="checkbox" data-layer="B" checked><span class="switch"></span></label>
+    <label class="layer-row"><span><i class="swatch points"></i>Waypoint dots</span><input id="showPoints" type="checkbox" checked><span class="switch"></span></label>
+    <label class="layer-row"><span>Include unlinked waypoints</span><input id="allPoints" type="checkbox"><span class="switch"></span></label>
+    <p class="small-note">All airway links are loaded. Unlinked fixes can belong to terminal procedures.</p>
+    <div class="slider-row"><label for="opacity">Link brightness</label><output id="opacityValue">50%</output></div><input id="opacity" type="range" min="10" max="100" value="50">
+    <div class="divider"></div>
+    <div class="section-title"><h3>Go somewhere</h3><button id="home" class="text-button">World view ↗</button></div>
+    <div class="presets"><button data-preset="asia">East Asia</button><button data-preset="europe">Europe</button><button data-preset="america">N. America</button><button data-preset="oceania">Oceania</button></div>
+    <label class="layer-row auto-row"><span>Slow globe rotation</span><input id="autoRotate" type="checkbox"><span class="switch"></span></label>
+    <div class="help"><span>↔</span><p><strong>Move around</strong><br>Drag to pan or rotate · Scroll to zoom<br>Right drag / Ctrl + drag to tilt in 3D<br>Click a dot to inspect its connections</p></div>
+    <p class="data-note">Published airway connectivity. Traffic volume and flown tracks are not represented.</p>
+    <div id="staticControls" hidden><div class="divider"></div><h3 style="font-size:12px;font-weight:500">Your own local data</h3><label class="secondary-button" style="text-align:center;cursor:pointer" for="datasetFile">Open local network.json</label><input id="datasetFile" type="file" accept="application/json,.json" class="sr-only"><button id="resetDemo" class="secondary-button">Return to synthetic demo</button><p class="small-note">Selected data stays in this browser tab. No upload or cloud storage.</p></div>
+  </aside>
+
+  <aside id="detailPanel" class="panel detail" hidden><div class="section-title"><span class="eyebrow" id="detailKind">WAYPOINT</span><button id="closeDetail" class="icon-button" aria-label="Close details">×</button></div><h2 id="detailTitle"></h2><p id="detailSubtitle" class="intro"></p><div id="detailBody"></div><button id="clearSelection" class="secondary-button">Clear highlight</button></aside>
+
+  <div class="map-label"><span class="live-dot"></span><span id="mapMode">GLOBAL NETWORK / 3D</span></div>
+  <div class="camera-controls" aria-label="Camera controls"><button id="north" title="Reset north and tilt" aria-label="Reset north">N ↑</button><div class="direction-pad"><button data-camera="up" title="Move north" aria-label="Move north">↑</button><button data-camera="left" title="Move west" aria-label="Move west">←</button><button data-camera="right" title="Move east" aria-label="Move east">→</button><button data-camera="down" title="Move south" aria-label="Move south">↓</button></div><button id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button><button id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button></div>
+  <footer class="statusbar"><span id="status"><span class="live-dot"></span>Preparing the globe…</span><span id="coordinates">WGS84 · LOCAL DATA</span></footer>
+  <div id="loading" class="loading-card" role="status"><div class="spinner"></div><strong id="loadingTitle">Opening the world's airways</strong><p id="loadingText">Reading your local Navigraph dataset…</p><div class="progress-track"><div id="progress"></div></div></div>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <noscript><div class="loading-card">Enable JavaScript to display the globe.</div></noscript>
+</body>
+</html>
