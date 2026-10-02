@@ -1,0 +1,87 @@
+name: Publish Waypoint Atlas
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: waypoint-atlas-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Expand reviewed source on first publication
+        if: ${{ hashFiles('app.py') == '' }}
+        run: |
+          python - <<'PY'
+          import hashlib, zipfile
+          from pathlib import Path
+          archive = Path('source.zip')
+          expected = '6f23f7623e62926b0026ec6644d53b86011abbf87caddead392c2e083608c016'
+          assert hashlib.sha256(archive.read_bytes()).hexdigest() == expected, 'Source archive integrity mismatch'
+          target = Path('.source').resolve()
+          with zipfile.ZipFile(archive) as bundle:
+              for member in bundle.infolist():
+                  assert (target / member.filename).resolve().is_relative_to(target), 'Unsafe source path'
+                  assert not member.filename.lower().endswith(('.sqlite', '.dat', '.csv')), 'Private data forbidden'
+              bundle.extractall(target)
+          PY
+          cp -a .source/. .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .gitignore .vscode app.py navdata.py requirements.txt README.md LOCAL_README.md DESIGN_AND_HANDOVER.md PUBLICATION.md web tools tests
+          if ! git diff --cached --quiet; then
+            git commit -m 'Expand reviewed Python and viewer source; keep licensed data local'
+            git push origin HEAD:main
+          fi
+      - name: Run graph and HTTP regression tests
+        run: python -m unittest discover -s tests -v
+      - name: Check browser source syntax
+        run: |
+          node --check web/app.js
+          node --check web/data-source.js
+      - name: Install verified local globe assets
+        run: python tools/setup_assets.py
+      - name: Build only synthetic demonstration
+        run: python tools/build_static.py --output _site
+      - name: Verify public data provenance
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('_site')
+          data = json.loads((root / 'demo.json').read_text())
+          assert data['manifest']['metadata']['data_source'] == 'SYNTHETIC'
+          assert all(point[1].startswith('DEM') for point in data['waypoints'])
+          assert not list(root.rglob('*.sqlite')) and not list(root.rglob('*.csv')) and not (root/'network.json').exists()
+          print('Synthetic public data verified; no private navigation input included.')
+          PY
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - name: Deploy public synthetic viewer
+        id: deployment
+        uses: actions/deploy-pages@v4
